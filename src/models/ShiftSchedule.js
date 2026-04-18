@@ -23,4 +23,6 @@ const shiftScheduleSchema = new mongoose.Schema(
 // 1 user tidak boleh dapat shift yang sama di hari yang sama
 shiftScheduleSchema.index({ userId: 1, shiftId: 1, date: 1 }, { unique: true });
 
-module.exports = mongoose.model("ShiftSchedule", shiftScheduleSchema);
+module.exports =
+  mongoose.models.ShiftSchedule ||
+  mongoose.model("ShiftSchedule", shiftScheduleSchema);

@@ -1,4 +1,4 @@
-import ShiftSchedule from "../models/shiftSchedule.js";
+import ShiftSchedule from "../models/ShiftSchedule.js";
 import Shift from "../models/Shift.js"
 import ErrorResponse from "../utils/errorResponse.js";
 import User from "../models/User.js"
