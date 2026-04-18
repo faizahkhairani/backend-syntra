@@ -112,7 +112,7 @@ export const login = async (req, res, next) => {
 
     if (!user) {
       return res.status(400).json({
-        message: "Invalid email or password cek response prod",
+        message: "Invalid email or password",
       });
     }
 
