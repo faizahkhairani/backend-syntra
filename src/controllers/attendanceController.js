@@ -1,5 +1,5 @@
 import Attendance from "../models/Attendance.js";
-import ShiftSchedule from "../models/shiftSchedule.js";
+import ShiftSchedule from "../models/ShiftSchedule.js";
 import ErrorResponse from "../utils/errorResponse.js";
 import { isWithinOfficeRadius } from "../utils/locationHelper.js";
 import { getCurrentDate, getCurrentTime, determineStatus, calcWorkDuration } from "../utils/timeHelper.js";
