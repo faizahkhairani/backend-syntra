@@ -8,7 +8,7 @@ const generateToken = (id) => {
   });
 };
 
-// @POST /api/auth/register — admin only
+// @POST /api/auth/register — admin only test
 export const register = async (req, res, next) => {
   try {
     const { name, email, password, role, department, phone } = req.body; // ← tambah field
