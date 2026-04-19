@@ -219,7 +219,7 @@ export const getMyAttendance = async (req, res, next) => {
         const attendance = await Attendance.find(filter)
             .populate({
                 path: "shiftScheduleId",
-                populate: { path: "shiftId", select: "name start_time end_time late_tolarance overnight" }
+                populate: { path: "shiftId", select: "name start_time end_time late_tolerance overnight" }
             })
             // urutkan data dari yg terbaru 
             .sort({ date: -1 })
