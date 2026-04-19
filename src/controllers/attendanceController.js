@@ -74,7 +74,8 @@ export const checkIn = async (req, res, next) => {
 
         // upsert — buat baru atau update kalau udah ada dokumen (misal dari sistem absen otomatis)
         const attendance = await Attendance.findOneAndUpdate(
-            { userId: req.user._id, shiftScheduleId }, // di cek dulu di db ada ga user id dan shift schedule id nya kalo ada create kalo belum
+            // apakah user ini sudah punya absensi untuk jadwal ini?
+            { userId: req.user._id, shiftScheduleId }, 
             {
                 userId: req.user._id,
                 shiftScheduleId,
@@ -218,7 +219,7 @@ export const getMyAttendance = async (req, res, next) => {
         const attendance = await Attendance.find(filter)
             .populate({
                 path: "shiftScheduleId",
-                populate: { path: "shiftId", select: "name start_time end_time" }
+                populate: { path: "shiftId", select: "name start_time end_time late_tolarance overnight" }
             })
             // urutkan data dari yg terbaru 
             .sort({ date: -1 })
