@@ -87,7 +87,8 @@ export const assignShift = async (req, res, next) => {
 
 export const getAllSchedules = async (req, res, next) => {
     try {
-        const {userId, date} = req.body
+        // req.query ketika frontend ambil data 
+        const { userId, date } = req.query
          // filter opsional by date dan userId
         const filter = {};
         if (date) filter.date = date;
@@ -117,8 +118,9 @@ export const getAllSchedules = async (req, res, next) => {
 
 export const getMySchedule = async (req, res, next) => {
     try {
-        const {month, year} = req.body
+        const { month, year } = req.query
 
+        // ambil data schedule milik user yang sedang login
         const filter = { userId: req.user._id };
 
         // filter by bulan dan tahun kalau dikirim
@@ -128,8 +130,10 @@ export const getMySchedule = async (req, res, next) => {
             filter.date = { $regex: `^${year}-${paddedMonth}` };
         }
 
+        // ambil data schedule milik user yang sedang login dari filter
         const schedules = await ShiftSchedule.find(filter)
         .populate("shiftId", "start_time end_time name overnight late_tolerance")
+            // urutkan dari yg paling lama ke baru
         .sort({ date: 1 })
 
         res.status(200).json({

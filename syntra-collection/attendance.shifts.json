@@ -1,0 +1,34 @@
+[{
+  "_id": {
+    "$oid": "69e0c2a1c121de6e58f4c718"
+  },
+  "name": "Shift Malam Updated",
+  "start_time": "20:00",
+  "end_time": "08:00",
+  "late_tolerance": 20,
+  "overnight": true,
+  "createdAt": {
+    "$date": "2026-04-16T11:06:09.659Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T12:19:38.852Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69e0c2efc121de6e58f4c719"
+  },
+  "name": "Shift Pagi",
+  "start_time": "08:00",
+  "end_time": "14:30",
+  "late_tolerance": 15,
+  "overnight": false,
+  "createdAt": {
+    "$date": "2026-04-16T11:07:27.911Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T11:07:27.911Z"
+  },
+  "__v": 0
+}]

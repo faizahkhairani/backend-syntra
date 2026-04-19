@@ -74,7 +74,7 @@ export const checkIn = async (req, res, next) => {
 
         // upsert — buat baru atau update kalau udah ada dokumen (misal dari sistem absen otomatis)
         const attendance = await Attendance.findOneAndUpdate(
-            { userId: req.user._id, shiftScheduleId },
+            { userId: req.user._id, shiftScheduleId }, // di cek dulu di db ada ga user id dan shift schedule id nya kalo ada create kalo belum
             {
                 userId: req.user._id,
                 shiftScheduleId,
@@ -101,6 +101,13 @@ export const checkIn = async (req, res, next) => {
         next(error)
     }
 }
+
+
+// ─────────────────────────────────────────
+// @desc    Check-out
+// @route   POST /api/attendance/checkout
+// @access  Private / Employee
+// ─────────────────────────────────────────
 
 export const checkOut = async (req, res, next) => {
     try {
@@ -185,6 +192,97 @@ export const checkOut = async (req, res, next) => {
             status: "Check Out Successfully"
         })
 
+    } catch (error) {
+        next(error)
+    }
+}
+
+// ─────────────────────────────────────────
+// @desc    Get riwayat absensi milik sendiri
+// @route   GET /api/attendance/my-attendance
+// @access  Private / Employee
+// ─────────────────────────────────────────
+
+export const getMyAttendance = async (req, res, next) => {
+    try {
+        const { month, year } = req.query
+
+        const filter = { userId: req.user._id }
+        console.log(filter)
+
+        if (month && year) {
+            const paddedMonth = String(month).padStart(2, "0");
+            filter.date = { $regex: `^${year}-${paddedMonth}` };
+        }
+
+        const attendance = await Attendance.find(filter)
+            .populate({
+                path: "shiftScheduleId",
+                populate: { path: "shiftId", select: "name start_time end_time" }
+            })
+            // urutkan data dari yg terbaru 
+            .sort({ date: -1 })
+        // console.log(attendance)
+
+        // untuk menghitung jumlah data tiap status absen
+        const summary = {
+            total: attendance.length,
+            present: attendance.filter((a) => a.status === "present").length,
+            late: attendance.filter((a) => a.status === "late").length,
+            absent: attendance.filter((a) => a.status === "absent").length,
+        }
+
+        res.status(200).json({
+            success: true,
+            summary,
+            data: attendance
+        })
+    } catch (error) {
+        next(error)
+    }
+}
+
+// ─────────────────────────────────────────
+// @desc    Get semua absensi (admin)
+// @route   GET /api/attendance
+// @access  Private / Admin
+// ─────────────────────────────────────────
+
+export const getAllAttendance = async (req, res, next) => {
+    try {
+        // kalo ada request dari depan 
+        const { date, userId, status, month, year } = req.query
+
+        const filter = {};
+        if (date) filter.date = date;
+        if (userId) filter.userId = userId;
+        if (status) filter.status = status;
+        if (month && year) {
+            const paddedMonth = String(month).padStart(2, "0");
+            filter.date = { $regex: `^${year}-${paddedMonth}` };
+        }
+
+        const attendances = await Attendance.find(filter)
+            .populate("userId", "name email department")
+            .populate({
+                path: "shiftScheduleId",
+                populate: { path: "shiftId", select: "name start_time end_time" }
+            })
+            .sort({ date: -1 }) // urutkan dari yg terbaru (desc)
+
+        const summary = {
+            total: attendances.length,
+            present: attendances.filter((a) => a.status === "present").length,
+            late: attendances.filter((a) => a.status === "late").length,
+            absent: attendances.filter((a) => a.status === "absent").length,
+        }
+
+        res.status(200).json({
+            success: true,
+            summary,
+            count: attendances.length,
+            data: attendances
+        })
     } catch (error) {
         next(error)
     }

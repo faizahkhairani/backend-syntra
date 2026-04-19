@@ -1,0 +1,62 @@
+[{
+  "_id": {
+    "$oid": "69e246cd604accfcd38e8015"
+  },
+  "userId": {
+    "$oid": "69dfc00a568ca9309bd29f68"
+  },
+  "shiftScheduleId": {
+    "$oid": "69e22e9ae3e0ec73a0028e89"
+  },
+  "__v": 0,
+  "checkIn": {
+    "time": "21:42",
+    "latitude": -6.2091,
+    "longitude": 106.846
+  },
+  "checkOut": {
+    "time": "09:51",
+    "latitude": -6.2091,
+    "longitude": 106.846
+  },
+  "createdAt": {
+    "$date": "2026-04-17T14:42:21.020Z"
+  },
+  "date": "2026-04-18",
+  "status": "late",
+  "updatedAt": {
+    "$date": "2026-04-18T02:51:31.903Z"
+  },
+  "workDuration": -711
+},
+{
+  "_id": {
+    "$oid": "69e2f208604accfcd38e8016"
+  },
+  "userId": {
+    "$oid": "69dfc00a568ca9309bd29f68"
+  },
+  "shiftScheduleId": {
+    "$oid": "69e2f1806bc7a354c407be82"
+  },
+  "__v": 0,
+  "checkIn": {
+    "time": "09:52",
+    "latitude": -6.2091,
+    "longitude": 106.846
+  },
+  "checkOut": {
+    "time": "09:54",
+    "latitude": -6.2091,
+    "longitude": 106.846
+  },
+  "createdAt": {
+    "$date": "2026-04-18T02:52:56.387Z"
+  },
+  "date": "2026-04-18",
+  "status": "late",
+  "updatedAt": {
+    "$date": "2026-04-18T02:54:05.605Z"
+  },
+  "workDuration": 2
+}]
