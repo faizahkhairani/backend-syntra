@@ -1,7 +1,9 @@
 import ShiftSchedule from "../models/ShiftSchedule.js";
+import Attendance from "../models/Attendance.js";
 import Shift from "../models/Shift.js"
 import ErrorResponse from "../utils/errorResponse.js";
 import User from "../models/User.js"
+import { getCurrentDate } from "../utils/timeHelper.js";
 
 // ─────────────────────────────────────────
 // @desc    Assign shift ke karyawan
@@ -210,7 +212,7 @@ export const getTodaySchedule = async (req, res, next) => {
             success: true,
           count: result.length,
           data: result,
-      });
+        });
     } catch (error) {
         next(error);
     }
