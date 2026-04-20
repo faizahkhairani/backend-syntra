@@ -152,28 +152,69 @@ export const getMySchedule = async (req, res, next) => {
 // @access  Private / Employee
 // ─────────────────────────────────────────
 
+// export const getTodaySchedule = async (req, res, next) => {
+//     try {
+//         // const today = new Date().toLocaleDateString("en-CA") // "2025-04-10"
+//         const today = new Date().toISOString().split("T")[0]; // "2025-04-10"
+
+//         // “Ambil semua shift milik user yg sedang login ini di tanggal hari ini”
+//         const schedules = await ShiftSchedule.find({
+//             // userId: 1
+//             userId: req.user._id,
+//             date: today,
+//         }).populate("shiftId", "start_time end_time name overnight late_tolerance")
+//             .sort({ createdAt: -1 })
+
+//         res.status(200).json({
+//             success: true,
+//             count: schedules.length,
+//             data: schedules
+
+//         })
+//     } catch (error) {
+//         next(error)
+//     }
+// }
+
 export const getTodaySchedule = async (req, res, next) => {
     try {
-        // const today = new Date().toLocaleDateString("en-CA") // "2025-04-10"
-        const today = new Date().toISOString().split("T")[0]; // "2025-04-10"
+        const today = getCurrentDate();
 
-        // “Ambil semua shift milik user yg sedang login ini di tanggal hari ini”
         const schedules = await ShiftSchedule.find({
-            // userId: 1
-            userId: req.user._id,
-            date: today,
-        }).populate("shiftId", "start_time end_time name overnight late_tolerance")
+          userId: req.user._id,
+          date: today,
+      }).populate("shiftId", "name start_time end_time overnight late_tolerance");
+
+        // cek attendance untuk setiap shift schedule
+        const result = await Promise.all(
+            schedules.map(async (schedule) => {
+                const attendance = await Attendance.findOne({
+                    userId: req.user._id,
+                    shiftScheduleId: schedule._id,
+                });
+
+                return {
+                    ...schedule.toObject(),
+                    attendanceStatus: {
+                        isCheckedIn: !!attendance?.checkIn?.time,   // true / false
+                        isCheckedOut: !!attendance?.checkOut?.time, // true / false
+                        checkInTime: attendance?.checkIn?.time || null,
+                        checkOutTime: attendance?.checkOut?.time || null,
+                        status: attendance?.status || null,         // present / late / absent
+                    },
+                };
+            })
+        );
 
         res.status(200).json({
             success: true,
-            count: schedules.length,
-            data: schedules
-
-        })
+          count: result.length,
+          data: result,
+      });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
 
 // ─────────────────────────────────────────
 // @desc    Hapus jadwal shift
