@@ -17,7 +17,7 @@ export const checkIn = async (req, res, next) => {
         //   "latitude": -6.2090,
         //   "longitude": 106.8460
         // }
-        const {shiftScheduleId, latitude, longitude} = req.body
+        const { shiftScheduleId, latitude, longitude } = req.body
         // validasi field wajib
         if (!shiftScheduleId || latitude == null || longitude == null) {
             return next(
@@ -25,16 +25,16 @@ export const checkIn = async (req, res, next) => {
             );
         }
 
-         // validasi lokasi
-        const location = isWithinOfficeRadius(latitude, longitude);
-        if (!location.isValid) {
-            return next(
-                new ErrorResponse(
-                `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
-                400
-            )
-        );
-        }
+        // validasi lokasi comment sementara
+        // const location = isWithinOfficeRadius(latitude, longitude);
+        // if (!location.isValid) {
+        //     return next(
+        //         new ErrorResponse(
+        //             `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
+        //             400
+        //         )
+        //     );
+        // }
 
         // cek shift schedule exist dan milik user ini
         const schedule = await ShiftSchedule.findById(shiftScheduleId).populate("shiftId");
@@ -55,7 +55,7 @@ export const checkIn = async (req, res, next) => {
             );
         }
 
-         // cek sudah check-in belum
+        // cek sudah check-in belum
         const existing = await Attendance.findOne({
             userId: req.user._id,
             shiftScheduleId,
@@ -75,15 +75,15 @@ export const checkIn = async (req, res, next) => {
         // upsert — buat baru atau update kalau udah ada dokumen (misal dari sistem absen otomatis)
         const attendance = await Attendance.findOneAndUpdate(
             // apakah user ini sudah punya absensi untuk jadwal ini?
-            { userId: req.user._id, shiftScheduleId }, 
+            { userId: req.user._id, shiftScheduleId },
             {
                 userId: req.user._id,
                 shiftScheduleId,
                 date: today,
                 checkIn: {
-                time: currentTime,
-                latitude,
-                longitude,
+                    time: currentTime,
+                    latitude,
+                    longitude,
                 },
                 status,
             },
@@ -117,26 +117,26 @@ export const checkOut = async (req, res, next) => {
         //   "latitude": -6.2090,
         //   "longitude": 106.8460
         // }
-        const {shiftScheduleId, latitude, longitude} = req.body
+        const { shiftScheduleId, latitude, longitude } = req.body
         // validasi field wajib
         if (!shiftScheduleId || latitude == null || longitude == null) {
             return next(
                 new ErrorResponse("shiftScheduleId, latitude, and longitude are required", 400)
             );
         }
-        console.log("Absen untuk shift ini: ",shiftScheduleId)
-        console.log("lokasi: ",latitude)
-        console.log("lokasi: ",longitude)
+        console.log("Absen untuk shift ini: ", shiftScheduleId)
+        console.log("lokasi: ", latitude)
+        console.log("lokasi: ", longitude)
 
         // validasi lokasi
         const location = isWithinOfficeRadius(latitude, longitude);
         if (!location.isValid) {
             return next(
                 new ErrorResponse(
-                `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
-                400
-            )
-        );
+                    `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
+                    400
+                )
+            );
         }
         console.log(location)
 
@@ -147,7 +147,7 @@ export const checkOut = async (req, res, next) => {
             shiftScheduleId, // req dari body
         }).populate({
             path: "shiftScheduleId",
-            populate: { path: "shiftId", select: "name start_time end_time overnight"}
+            populate: { path: "shiftId", select: "name start_time end_time overnight" }
         })
 
         // cek udh absen belom
