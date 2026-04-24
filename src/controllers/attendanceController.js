@@ -128,17 +128,17 @@ export const checkOut = async (req, res, next) => {
         console.log("lokasi: ", latitude)
         console.log("lokasi: ", longitude)
 
-        // validasi lokasi
-        const location = isWithinOfficeRadius(latitude, longitude);
-        if (!location.isValid) {
-            return next(
-                new ErrorResponse(
-                    `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
-                    400
-                )
-            );
-        }
-        console.log(location)
+        // validasi lokasi comment sementara
+        // const location = isWithinOfficeRadius(latitude, longitude);
+        // if (!location.isValid) {
+        //     return next(
+        //         new ErrorResponse(
+        //             `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
+        //             400
+        //         )
+        //     );
+        // }
+        // console.log(location)
 
         // cek apakah dia sudah check in dan absen nya ada
         const attendance = await Attendance.findOne({
