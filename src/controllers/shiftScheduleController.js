@@ -182,36 +182,54 @@ export const getTodaySchedule = async (req, res, next) => {
     try {
         const today = getCurrentDate();
 
+        // query 1 — ambil semua jadwal hari ini
         const schedules = await ShiftSchedule.find({
-          userId: req.user._id,
-          date: today,
-      }).populate("shiftId", "name start_time end_time overnight late_tolerance");
+            userId: req.user._id,
+            date: today,
+        }).populate("shiftId", "name start_time end_time overnight late_tolerance");
 
-        // cek attendance untuk setiap shift schedule
-        const result = await Promise.all(
-            schedules.map(async (schedule) => {
-                const attendance = await Attendance.findOne({
-                    userId: req.user._id,
-                    shiftScheduleId: schedule._id,
-                });
+        if (schedules.length === 0) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+            });
+        }
 
-                return {
-                    ...schedule.toObject(),
-                    attendanceStatus: {
-                        isCheckedIn: !!attendance?.checkIn?.time,   // true / false
-                        isCheckedOut: !!attendance?.checkOut?.time, // true / false
-                        checkInTime: attendance?.checkIn?.time || null,
-                        checkOutTime: attendance?.checkOut?.time || null,
-                        status: attendance?.status || null,         // present / late / absent
-                    },
-                };
-            })
-        );
+        // query 2 — ambil semua attendance sekaligus pakai $in
+        const scheduleIds = schedules.map((s) => s._id); // ambil semua id jadwal → [1, 2, 3]
+        const attendances = await Attendance.find({
+            userId: req.user._id,
+            //buat ambil semua attendance yang cocok dengan id-id itu dalam 1 query
+            shiftScheduleId: { $in: scheduleIds },
+        });
+
+        // buat map shiftScheduleId → attendance untuk lookup O(1)
+        const attendanceMap = {};
+        attendances.forEach((att) => {
+            attendanceMap[att.shiftScheduleId.toString()] = att;
+        });
+
+        // gabungkan tanpa query tambahan
+        const result = schedules.map((schedule) => {
+            const attendance = attendanceMap[schedule._id.toString()] || null;
+
+            return {
+                ...schedule.toObject(),
+                attendanceStatus: {
+                    isCheckedIn: !!attendance?.checkIn?.time,
+                    isCheckedOut: !!attendance?.checkOut?.time,
+                    checkInTime: attendance?.checkIn?.time || null,
+                    checkOutTime: attendance?.checkOut?.time || null,
+                    status: attendance?.status || null,
+                },
+            };
+        });
 
         res.status(200).json({
             success: true,
-          count: result.length,
-          data: result,
+            count: result.length,
+            data: result,
         });
     } catch (error) {
         next(error);

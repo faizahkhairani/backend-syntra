@@ -288,3 +288,127 @@ export const getAllAttendance = async (req, res, next) => {
         next(error)
     }
 }
+
+// ─────────────────────────────────────────
+// @desc    Check-in / Check-out (toggle)
+// @route   POST /api/attendance/absen
+// @access  Private / Employee
+// ─────────────────────────────────────────
+// exports.absen = async (req, res, next) => {
+//   try {
+//     const { shiftScheduleId, latitude, longitude } = req.body;
+
+//     if (!shiftScheduleId || latitude == null || longitude == null) {
+//       return next(
+//         new ErrorResponse("shiftScheduleId, latitude, and longitude are required", 400)
+//       );
+//     }
+
+//     // validasi lokasi
+//     const location = isWithinOfficeRadius(latitude, longitude);
+//     if (!location.isValid) {
+//       return next(
+//         new ErrorResponse(
+//           `You are too far from the office. Distance: ${location.distance}m, allowed: ${location.allowedRadius}m`,
+//           400
+//         )
+//       );
+//     }
+
+//     // cek shift schedule exist dan milik user ini
+//     const schedule = await ShiftSchedule.findById(shiftScheduleId).populate("shiftId");
+//     if (!schedule) {
+//       return next(new ErrorResponse("Shift schedule not found", 404));
+//     }
+//     if (schedule.userId.toString() !== req.user._id.toString()) {
+//       return next(
+//         new ErrorResponse("This shift schedule does not belong to you", 403)
+//       );
+//     }
+
+//     // cek tanggal sesuai hari ini
+//     const today = getCurrentDate();
+//     if (schedule.date !== today) {
+//       return next(
+//         new ErrorResponse(
+//           `This shift is scheduled for ${schedule.date}, not today`,
+//           400
+//         )
+//       );
+//     }
+
+//     // cek attendance yang sudah ada
+//     const existing = await Attendance.findOne({
+//       userId: req.user._id,
+//       shiftScheduleId,
+//     });
+
+//     const currentTime = getCurrentTime();
+
+//     // ── BELUM CHECK-IN → lakukan CHECK-IN ──
+//     if (!existing || !existing.checkIn?.time) {
+//       const status = determineStatus(
+//         currentTime,
+//         schedule.shiftId.start_time,
+//         schedule.shiftId.late_tolerance
+//       );
+
+//       const attendance = await Attendance.findOneAndUpdate(
+//         { userId: req.user._id, shiftScheduleId },
+//         {
+//           userId: req.user._id,
+//           shiftScheduleId,
+//           date: today,
+//           checkIn: { time: currentTime, latitude, longitude },
+//           status,
+//         },
+//         { upsert: true, new: true, runValidators: true }
+//       ).populate({
+//         path: "shiftScheduleId",
+//         populate: { path: "shiftId", select: "name start_time end_time" },
+//       });
+
+//       return res.status(200).json({
+//         success: true,
+//         action: "check-in",
+//         message: `Check-in successful — status: ${status}`,
+//         data: attendance,
+//       });
+//     }
+
+//     // ── SUDAH CHECK-OUT → tolak ──
+//     if (existing.checkOut?.time) {
+//       return next(
+//         new ErrorResponse("You have already completed attendance for this shift", 400)
+//       );
+//     }
+
+//     // ── SUDAH CHECK-IN, BELUM CHECK-OUT → lakukan CHECK-OUT ──
+//     const workDuration = calcWorkDuration(
+//       existing.checkIn.time,
+//       currentTime,
+//       schedule.shiftId.overnight
+//     );
+
+//     existing.checkOut = { time: currentTime, latitude, longitude };
+//     existing.workDuration = workDuration;
+//     await existing.save();
+
+//     await existing.populate({
+//       path: "shiftScheduleId",
+//       populate: { path: "shiftId", select: "name start_time end_time" },
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       action: "check-out",
+//       message: "Check-out successful",
+//       data: {
+//         ...existing.toObject(),
+//         workDurationFormatted: `${Math.floor(workDuration / 60)}h ${workDuration % 60}m`,
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };

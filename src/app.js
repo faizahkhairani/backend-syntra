@@ -20,6 +20,9 @@ app.use("/api/shift-schedules", shiftScheduleRoutes);
 
 const attendanceRoutes = require("./routes/attendanceRoutes");
 app.use("/api/attendance", attendanceRoutes);
+
+const leaveRoutes = require("./routes/leaveRoutes");
+app.use("/api/leaves", leaveRoutes);
 // test route
 app.get("/", (req, res) => {
   res.json({ message: "Attendance API is running" });
