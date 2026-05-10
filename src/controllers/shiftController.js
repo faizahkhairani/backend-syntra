@@ -1,5 +1,6 @@
 import Shift from "../models/Shift.js"
 import ErrorResponse from "../utils/errorResponse.js"
+import ShiftSchedules from "../models/shiftSchedule.js"
 
 
 export const getAllShifts = async (req, res, next) => {
@@ -138,7 +139,7 @@ export const updateShift = async (req, res, next) => {
             ...(late_tolerance !== undefined && { late_tolerance }),
             overnight: isOvernight,
         },
-            { new: true, runValidators: true }
+            { returnDocument: "after", runValidators: true }
         );
 
         res.status(200).json({
@@ -152,31 +153,31 @@ export const updateShift = async (req, res, next) => {
     }
 }
 
-// export const deleteShift = async (req, res, next) => {
-//     try {
-//         const shift = await Shift.findById(req.params.id);
-//     if (!shift) {
-//       return next(new ErrorResponse("Shift not found", 404));
-//     }
+export const deleteShift = async (req, res, next) => {
+    try {
+        const shift = await Shift.findById(req.params.id);
+        if (!shift) {
+            return next(new ErrorResponse("Shift not found", 404));
+        }
 
-//     // cek apakah shift masih dipakai di shift_schedules
-//     const isInUse = await ShiftSchedule.findOne({ shiftId: req.params.id });
-//     if (isInUse) {
-//       return next(
-//         new ErrorResponse(
-//           "Cannot delete shift that is already assigned to employees",
-//           400
-//         )
-//       );
-//     }
+        // cek apakah shift masih dipakai di shift_schedules
+        const isInUse = await ShiftSchedules.findOne({ shiftId: req.params.id });
+        if (isInUse) {
+            return next(
+                new ErrorResponse(
+                    "Cannot delete shift that is already assigned to employees",
+                    400
+                )
+            );
+        }
 
-//     await shift.deleteOne();
+        await shift.deleteOne();
 
-//     res.status(200).json({
-//       success: true,
-//       message: "Shift deleted successfully",
-//     });
-//     } catch (error) {
-//         next(error)
-//     }
-// }
+        res.status(200).json({
+            success: true,
+            message: "Shift deleted successfully",
+        });
+    } catch (error) {
+        next(error)
+    }
+}

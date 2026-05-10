@@ -23,6 +23,13 @@ app.use("/api/attendance", attendanceRoutes);
 
 const leaveRoutes = require("./routes/leaveRoutes");
 app.use("/api/leaves", leaveRoutes);
+
+const userRoutes = require("./routes/userRoutes");
+app.use("/api/users", userRoutes);
+
+const dashboardRoutes = require("./routes/dashboardRoutes");
+app.use("/api/dashboard", dashboardRoutes);
+
 // test route
 app.get("/", (req, res) => {
   res.json({ message: "Attendance API is running" });

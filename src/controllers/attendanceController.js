@@ -87,7 +87,7 @@ export const checkIn = async (req, res, next) => {
                 },
                 status,
             },
-            { upsert: true, new: true, runValidators: true }
+            { upsert: true, returnDocument: "after", runValidators: true }
         ).populate({
             path: "shiftScheduleId",
             populate: { path: "shiftId", select: "name start_time end_time" },

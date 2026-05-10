@@ -22,6 +22,19 @@ const calcWorkDuration = (checkInTime, checkOutTime, overnight) => {
   return outMinutes - inMinutes;
 };
 
+const isShiftStarted = (currentTime, startTime) => {
+  return currentTime >= startTime
+}
+
+const isShiftEnded = (currentTime, endTime, overnight) => {
+  if (overnight) {
+    // shift malam — ended kalau currentTime sudah lewat endTime keesokan harinya
+    // simpelnya: kalau currentTime < startTime berarti sudah pagi = shift selesai
+    return currentTime >= endTime && currentTime < "12:00"
+  }
+  return currentTime > endTime
+}
+
 // tentukan status: present atau late
 const determineStatus = (checkInTime, shiftStartTime, lateTolerance) => {
   const checkInMinutes = timeToMinutes(checkInTime);

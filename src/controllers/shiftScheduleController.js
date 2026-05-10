@@ -242,35 +242,32 @@ export const getTodaySchedule = async (req, res, next) => {
 // @access  Private / Admin
 // ─────────────────────────────────────────
 
-// export const deleteSchedule = async (req, res, next) => {
-//     try {
-//         const schedule = await ShiftSchedule.findById(req.params.id)
-//         if (!schedule) {
-//       return next(new ErrorResponse("Schedule not found", 404));
-//     }
+export const deleteSchedule = async (req, res, next) => {
+    try {
+        const schedule = await ShiftSchedule.findById(req.params.id)
+        if (!schedule) {
+            return next(new ErrorResponse("Schedule not found", 404));
+        }
 
-//     // cek apakah sudah ada absensi untuk jadwal ini
-//     const Attendance = require("../models/Attendance");
-//     const hasAttendance = await Attendance.findOne({
-//       shiftScheduleId: req.params.id,
-//     });
-//     if (hasAttendance) {
-//       return next(
-//         new ErrorResponse(
-//           "Cannot delete schedule that already has attendance record",
-//           400
-//         )
-//       );
-//     }
+        // cek apakah sudah ada absensi untuk jadwal ini
+        const attendance = await Attendance.findOne({ shiftScheduleId: req.params.id, });
+        if (attendance) {
+            return next(
+                new ErrorResponse(
+                    "Cannot delete schedule that already has attendance record",
+                    400
+                )
+            );
+        }
 
-//     await schedule.deleteOne();
+        await schedule.deleteOne();
 
-//     res.status(200).json({
-//         success: true,
-//         message: "Schedule deleted successfully"
-//     })
+        res.status(200).json({
+            success: true,
+            message: "Schedule deleted successfully"
+        })
 
-//     } catch (error) {
-//         next(error)
-//     }
-// }
+    } catch (error) {
+        next(error)
+    }
+}

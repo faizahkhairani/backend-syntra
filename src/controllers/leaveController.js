@@ -152,7 +152,7 @@ export const createLeaveRequest = async (req, res, next) => {
         // cek overlap tanggal
         const overlap = await LeaveRequest.findOne({
             userId: req.user._id,
-            status: { $ne: "rejected" },
+            status: { $ne: "rejected" }, // yg bukan reject di check 
             startDate: { $lte: endDate },
             endDate: { $gte: startDate },
         });

@@ -5,6 +5,7 @@ const {
   getShiftById,
   createShift,
   updateShift,
+  deleteShift
 } = require("../controllers/shiftController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -17,6 +18,6 @@ router.route("/")
 router.route("/:id")
   .get(getShiftById)
   .put(authorize("admin"), updateShift)
-//   .delete(authorize("admin"), deleteShift);
+  .delete(authorize("admin"), deleteShift);
 
 module.exports = router;
