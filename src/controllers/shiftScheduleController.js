@@ -120,7 +120,7 @@ export const getAllSchedules = async (req, res, next) => {
 
 export const getMySchedule = async (req, res, next) => {
     try {
-        const { month, year } = req.query
+        const { month, year, page = 1, limit = 5 } = req.query
 
         // ambil data schedule milik user yang sedang login
         const filter = { userId: req.user._id };
@@ -133,15 +133,27 @@ export const getMySchedule = async (req, res, next) => {
         }
 
         // ambil data schedule milik user yang sedang login dari filter
-        const schedules = await ShiftSchedule.find(filter)
-        .populate("shiftId", "start_time end_time name overnight late_tolerance")
-            // urutkan dari yg paling lama ke baru
-        .sort({ date: 1 })
+        const skip = (Number(page) - 1) * Number(limit)
+
+        const [data, total] = await Promise.all([
+            ShiftSchedule.find(filter)
+                .populate("shiftId", "start_time end_time name overnight late_tolerance")
+        // urutkan dari yg paling lama ke baru
+                .sort({ date: -1 })
+                .skip(skip)
+                .limit(Number(limit)), // 10
+            ShiftSchedule.countDocuments(filter) // Hitung seluruh jadwal shift milik user login
+        ])
 
         res.status(200).json({
             success: true,
-            count: schedules.length,
-            data: schedules
+            data,
+            pagination: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / Number(limit)), // 45 / 10 = 4.5
+            }
         })
     } catch (error) {
         next(error)
@@ -182,7 +194,7 @@ export const getTodaySchedule = async (req, res, next) => {
     try {
         const today = getCurrentDate();
 
-        // query 1 — ambil semua jadwal hari ini
+        // query 1 — ambil semua jadwal user di hari ini
         const schedules = await ShiftSchedule.find({
             userId: req.user._id,
             date: today,
@@ -205,6 +217,10 @@ export const getTodaySchedule = async (req, res, next) => {
         });
 
         // buat map shiftScheduleId → attendance untuk lookup O(1)
+        // contoh: {
+        //   "1": {attendance untuk jadwal 1},
+        //   "2": {attendance untuk jadwal 2},
+        // }
         const attendanceMap = {};
         attendances.forEach((att) => {
             attendanceMap[att.shiftScheduleId.toString()] = att;

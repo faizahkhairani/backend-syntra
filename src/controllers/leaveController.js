@@ -111,6 +111,7 @@ export const createLeaveRequest = async (req, res, next) => {
             return next(new ErrorResponse("Cannot apply leave for past dates", 400));
         }
 
+        // ngitung durasi cuti yang diajukan
         const duration = calcLeaveDuration(startDate, endDate);
         console.log(duration)
 
@@ -196,20 +197,35 @@ export const createLeaveRequest = async (req, res, next) => {
 // @access  Private / Employee
 // ─────────────────────────────────────────
 
+
 export const getMyLeaveRequests = async (req, res, next) => {
     try {
-        const {status, year} = req.query
+        // GET /leave/my-request?page=2&limit=10
+        // page = 2, limit = 10
+        const { status, year, page = 1, limit = 5 } = req.query
         const filter = {userId: req.user._id}
         if (status) filter.status = status;
         if (year) filter.startDate = { $regex: `^${year}` };
 
-        const requests = await LeaveRequest.find(filter)
-        .sort({ createdAt: -1})
+        const skip = (Number(page) - 1) * Number(limit)
+
+        const [data, total] = await Promise.all([
+            LeaveRequest.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip) // 10
+                .limit(Number(limit)), // 10
+            LeaveRequest.countDocuments(filter) // Hitung seluruh leave request milik user login
+        ])
 
         res.status(200).json({
             success: true,
-            count: requests.length,
-            data: requests
+            data, // yg sudah diquery sesuai page & limit [data ke-11 sampai data ke-20]
+            pagination: {
+                total, // 45
+                page: Number(page), // 2
+                limit: Number(limit), // 10
+                totalPages: Math.ceil(total / Number(limit)), // 45 / 10 = 4.5
+            }
         })
     } catch (error) {
         next(error)

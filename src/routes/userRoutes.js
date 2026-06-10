@@ -5,7 +5,8 @@ const {
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  resetPassword
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -19,7 +20,9 @@ router.route("/")
 router.route("/:id")
   .get(authorize("admin"), getUserById)
   .put(authorize("admin"), updateUser)
-  .delete(authorize("admin"), deleteUser);
+  .delete(authorize("admin"), deleteUser)
+
+router.patch("/:id/reset-password", authorize("admin"), resetPassword);
 
 
 module.exports = router;

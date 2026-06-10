@@ -1,6 +1,6 @@
 import Shift from "../models/Shift.js"
 import ErrorResponse from "../utils/errorResponse.js"
-import ShiftSchedules from "../models/shiftSchedule.js"
+import ShiftSchedules from "../models/ShiftSchedule.js"
 
 
 export const getAllShifts = async (req, res, next) => {

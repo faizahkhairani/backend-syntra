@@ -206,37 +206,50 @@ export const checkOut = async (req, res, next) => {
 
 export const getMyAttendance = async (req, res, next) => {
     try {
-        const { month, year } = req.query
+        const { month, year, page = 1, limit = 10 } = req.query
 
         const filter = { userId: req.user._id }
-        console.log(filter)
+        // console.log(filter)
 
         if (month && year) {
             const paddedMonth = String(month).padStart(2, "0");
             filter.date = { $regex: `^${year}-${paddedMonth}` };
         }
 
-        const attendance = await Attendance.find(filter)
+        const skip = (Number(page) - 1) * Number(limit)
+        // console.log(skip, limit)
+
+        const [data, total] = await Promise.all([
+            Attendance.find(filter)
             .populate({
                 path: "shiftScheduleId",
                 populate: { path: "shiftId", select: "name start_time end_time late_tolerance overnight" }
             })
             // urutkan data dari yg terbaru 
             .sort({ date: -1 })
-        // console.log(attendance)
+                .skip(skip)
+                .limit(Number(limit)),
+            Attendance.countDocuments(filter)
+        ])
+        // console.log(data, total)
 
         // untuk menghitung jumlah data tiap status absen
-        const summary = {
-            total: attendance.length,
-            present: attendance.filter((a) => a.status === "present").length,
-            late: attendance.filter((a) => a.status === "late").length,
-            absent: attendance.filter((a) => a.status === "absent").length,
-        }
+        // const summary = {
+        //     total: attendance.length,
+        //     present: attendance.filter((a) => a.status === "present").length,
+        //     late: attendance.filter((a) => a.status === "late").length,
+        //     absent: attendance.filter((a) => a.status === "absent").length,
+        // }
 
-        res.status(200).json({
+        res.status(200).json({ 
             success: true,
-            summary,
-            data: attendance
+            data,
+            pagination: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / Number(limit)),
+            }
         })
     } catch (error) {
         next(error)
