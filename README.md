@@ -34,3 +34,13 @@ Keterangan:
 - OFFICE_LATITUDE  → koordinat latitude lokasi petshop
 - OFFICE_LONGITUDE → koordinat longitude lokasi petshop
 - OFFICE_RADIUS_METERS → radius absen yang diizinkan (dalam meter)
+
+### 4. Jalankan server
+
+# Development
+npm run dev
+
+# Production
+npm start
+
+Server berjalan di http://localhost:5000
