@@ -35,7 +35,14 @@ Keterangan:
 - OFFICE_LONGITUDE → koordinat longitude lokasi petshop
 - OFFICE_RADIUS_METERS → radius absen yang diizinkan (dalam meter)
 
-### 4. Jalankan server
+### 4. Seed data awal (admin)
+
+npm run seed
+
+Perintah ini akan membuat:
+- Akun admin default (email: admin@petshop.com, password: admin123)
+
+### 5. Jalankan server
 
 # Development
 npm run dev
