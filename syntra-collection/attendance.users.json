@@ -1,0 +1,36 @@
+[{
+  "_id": {
+    "$oid": "69da2c711533503742d64d2a"
+  },
+  "name": "Admin",
+  "email": "admin@petshop.com",
+  "password": "$2b$10$8PRrTXwLpuEmDu8fM19YNeMgBhwvg9YtDuB72y5AJQZJfhFjaO5eO",
+  "role": "admin",
+  "department": "HR",
+  "phone": "08123456789",
+  "createdAt": {
+    "$date": "2026-04-11T11:11:45.777Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-11T11:11:45.777Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69dfc00a568ca9309bd29f68"
+  },
+  "name": "Muhammad Adib",
+  "email": "adib@gmail.com",
+  "password": "$2b$10$8PRrTXwLpuEmDu8fM19YNeMgBhwvg9YtDuB72y5AJQZJfhFjaO5eO",
+  "role": "employee",
+  "department": "Grooming",
+  "phone": "08123456789",
+  "createdAt": {
+    "$date": "2026-04-15T16:42:50.363Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-15T16:42:50.363Z"
+  },
+  "__v": 0
+}]

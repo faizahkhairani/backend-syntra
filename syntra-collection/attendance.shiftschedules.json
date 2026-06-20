@@ -1,0 +1,57 @@
+[{
+  "_id": {
+    "$oid": "69e0e9e314d27a4e58bf4c6e"
+  },
+  "userId": {
+    "$oid": "69dfc00a568ca9309bd29f68"
+  },
+  "shiftId": {
+    "$oid": "69e0c2efc121de6e58f4c719"
+  },
+  "date": "2025-04-17",
+  "createdAt": {
+    "$date": "2026-04-16T13:53:39.502Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-16T13:53:39.502Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69e22e9ae3e0ec73a0028e89"
+  },
+  "userId": {
+    "$oid": "69dfc00a568ca9309bd29f68"
+  },
+  "shiftId": {
+    "$oid": "69e0c2efc121de6e58f4c719"
+  },
+  "date": "2026-04-17",
+  "createdAt": {
+    "$date": "2026-04-17T12:59:06.048Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-17T12:59:06.048Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69e2f1806bc7a354c407be82"
+  },
+  "userId": {
+    "$oid": "69dfc00a568ca9309bd29f68"
+  },
+  "shiftId": {
+    "$oid": "69e0c2efc121de6e58f4c719"
+  },
+  "date": "2026-04-18",
+  "createdAt": {
+    "$date": "2026-04-18T02:50:40.384Z"
+  },
+  "updatedAt": {
+    "$date": "2026-04-18T02:50:40.384Z"
+  },
+  "__v": 0
+}]
