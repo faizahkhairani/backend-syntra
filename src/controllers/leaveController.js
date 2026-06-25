@@ -3,6 +3,8 @@ import LeaveQuota from "../models/LeaveQuota.js";
 import ErrorResponse from "../utils/errorResponse.js";
 import { calcLeaveDuration, LEAVE_RULES, calcRemainingQuota } from "../utils/leaveHelper.js";
 import mongoose from "mongoose";
+import Attendance from "../models/Attendance.js";
+import ShiftSchedule from "../models/ShiftSchedule.js";
 
 // ─────────────────────────────────────────
 // @desc    Get quota cuti milik sendiri
@@ -429,3 +431,145 @@ export const getLeaveTypes = async (req, res, next) => {
         next(error)
     }
 }
+
+export const getLeaveRecommendations = async (req, res, next) => {
+    try {
+        // 1. Ambil semua pending leave requests
+        const pendingLeaves = await LeaveRequest.find({ status: "pending" })
+            .populate("userId", "name email department");
+
+        if (pendingLeaves.length === 0) {
+            return res.status(200).json({ success: true, count: 0, data: [] });
+        }
+
+        // 2. Ambil range 3 bulan terakhir
+        const now = new Date();
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(now.getMonth() - 3);
+        const startDate = threeMonthsAgo.toISOString().split("T")[0]; // "YYYY-MM-DD"
+        const endDate = now.toISOString().split("T")[0];
+
+        // 3. Ambil semua userId yang punya pending leave
+        const userIds = [...new Set(pendingLeaves.map((l) => l.userId._id.toString()))];
+
+        // 4. Fetch semua data sekaligus (hindari N+1)
+        const [quotas, attendances, shiftSchedules] = await Promise.all([
+            LeaveQuota.find({ userId: { $in: userIds }, year: now.getFullYear() }),
+            Attendance.find({
+                userId: { $in: userIds },
+                date: { $gte: startDate, $lte: endDate },
+            }),
+            ShiftSchedule.find({ // sebagai acuan untuk menghitung total shift 
+                userId: { $in: userIds },
+                date: { $gte: startDate, $lte: endDate },
+            }),
+        ]);
+        // console.log(quotas)
+
+        // 5. Hitung remaining quota tiap user pakai calcRemainingQuota
+        const quotaMap = {};
+        await Promise.all(
+            quotas.map(async (q) => {
+                const { remaining } = await calcRemainingQuota(
+                    q.userId,
+                    now.getFullYear(),
+                    q.total_quota,
+                    LeaveRequest
+                );
+                quotaMap[q.userId.toString()] = remaining;
+            })
+        );
+
+        // 6. Buat map userId → total shift di-assign dari ShiftSchedule
+        const scheduleMap = {};
+        shiftSchedules.forEach((s) => {
+            const uid = s.userId.toString();
+            if (!scheduleMap[uid]) scheduleMap[uid] = 0;
+            scheduleMap[uid]++;
+        });
+
+        // 7. Buat map userId → { hadirCount, telatCount } dari Attendance
+        const attendanceMap = {};
+        attendances.forEach((att) => {
+            const uid = att.userId.toString();
+            if (!attendanceMap[uid]) {
+                attendanceMap[uid] = { hadirCount: 0, telatCount: 0 };
+            }
+            if (att.status === "present") attendanceMap[uid].hadirCount++;
+            if (att.status === "late") {
+                attendanceMap[uid].hadirCount++;
+                attendanceMap[uid].telatCount++;
+            }
+        });
+
+        // 7. Hitung C1, C2, C3 tiap karyawan
+        const criteriaData = userIds.map((uid) => {
+            const quota = quotaMap[uid] ?? 0;
+            const att = attendanceMap[uid] ?? { hadirCount: 0, telatCount: 0 };
+            const totalAssigned = scheduleMap[uid] ?? 0; // ← dari ShiftSchedule
+            const kehadiran = totalAssigned > 0
+                ? (att.hadirCount / totalAssigned) * 100
+                : 0;
+
+            return {
+                userId: uid,
+                c1: quota,               // sisa quota (benefit)
+                c2: kehadiran,           // % kehadiran (benefit)
+                c3: att.telatCount,      // jumlah telat (cost)
+            };
+        });
+        console.log("scheduleMap:", scheduleMap);
+        console.log("attendanceMap:", attendanceMap);
+        console.log("criteriaData:", criteriaData);
+
+        // 8. Normalisasi SAW
+        const maxC1 = Math.max(...criteriaData.map((d) => d.c1));
+        const maxC2 = Math.max(...criteriaData.map((d) => d.c2));
+        const minC3 = Math.min(...criteriaData.map((d) => d.c3 + 1)); // +1 hindari div/0
+
+        const W1 = 0.4; // bobot C1
+        const W2 = 0.4; // bobot C2
+        const W3 = 0.2; // bobot C3
+
+        const scoreMap = {};
+        criteriaData.forEach((d) => {
+            const r1 = maxC1 > 0 ? d.c1 / maxC1 : 0;
+            const r2 = maxC2 > 0 ? d.c2 / maxC2 : 0;
+            const r3 = minC3 / (d.c3 + 1); // cost normalisasi
+
+            const score = (r1 * W1) + (r2 * W2) + (r3 * W3);
+
+            scoreMap[d.userId] = {
+                score: parseFloat(score.toFixed(2)),
+                criteria: {
+                    sisaQuota: d.c1,
+                    kehadiran: parseFloat(d.c2.toFixed(1)),
+                    keterlambatan: d.c3,
+                },
+            };
+        });
+
+        // 9. Sisipkan skor ke tiap leave request + sort by skor
+        const result = pendingLeaves
+            .map((leave) => {
+                const uid = leave.userId._id.toString();
+                return {
+                    ...leave.toObject(),
+                    saw: scoreMap[uid] ?? { score: 0, criteria: {} },
+                };
+            })
+            .sort((a, b) => b.saw.score - a.saw.score)
+            .map((leave, index) => ({
+                ...leave,
+                saw: { ...leave.saw, rank: index + 1 },
+            }));
+
+        res.status(200).json({
+            success: true,
+            count: result.length,
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};

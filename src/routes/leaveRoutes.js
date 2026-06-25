@@ -8,7 +8,8 @@ const {
   reviewLeaveRequest,
   cancelLeaveRequest,
   getAllQuotas,
-  getLeaveTypes
+  getLeaveTypes,
+  getLeaveRecommendations
 } = require("../controllers/leaveController");
 const { protect, authorize } = require("../middleware/auth");
 
@@ -24,6 +25,7 @@ router.patch("/:id/cancel", cancelLeaveRequest);
 // admin
 router.get("/", authorize("admin"), getAllLeaveRequests);
 router.get("/quotas", authorize("admin"), getAllQuotas);
+router.get("/recommendations", authorize("admin"), getLeaveRecommendations);
 router.patch("/:id/review", authorize("admin"), reviewLeaveRequest);
 
 module.exports = router;
