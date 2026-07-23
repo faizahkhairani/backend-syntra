@@ -223,3 +223,86 @@ export const getDailyRecap = async (req, res, next) => {
     next(error);
   }
 }
+
+
+const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+export const getWeeklyAttendance = async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // mulai Senin
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const results = await Attendance.aggregate([
+      {
+        $match: {
+          date: { $gte: startOfWeek, $lte: endOfWeek },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            dayOfWeek: { $dayOfWeek: "$date" }, // 1=Minggu ... 7=Sabtu
+            status: "$status",
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // inisialisasi 7 hari (Senin-Minggu) dengan default 0
+    const weekMap = {};
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + (i - 1));
+      const label = DAY_LABELS[d.getDay()];
+      weekMap[label] = { day: label, hadir: 0, terlambat: 0, absen: 0 };
+    }
+
+    // isi dari hasil aggregate
+    results.forEach((r) => {
+      const jsDay = r._id.dayOfWeek - 1; // convert Mongo (1-7, Min-Sab) ke JS getDay (0-6)
+      const label = DAY_LABELS[jsDay];
+      if (!weekMap[label]) return;
+
+      if (r._id.status === "present") weekMap[label].hadir += r.count;
+      else if (r._id.status === "late") weekMap[label].terlambat += r.count;
+      else if (r._id.status === "absent") weekMap[label].absen += r.count;
+    });
+
+    res.json(Object.values(weekMap));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Gagal mengambil data absensi mingguan" });
+  }
+};
+
+export const getLeaveSummary = async (req, res) => {
+  try {
+    const results = await LeaveRequest.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const summary = { pending: 0, approved: 0, rejected: 0 };
+    results.forEach((r) => {
+      if (summary.hasOwnProperty(r._id)) {
+        summary[r._id] = r.count;
+      }
+    });
+
+    res.json(summary);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Gagal mengambil ringkasan cuti" });
+  }
+};
