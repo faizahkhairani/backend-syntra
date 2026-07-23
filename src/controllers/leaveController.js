@@ -518,9 +518,9 @@ export const getLeaveRecommendations = async (req, res, next) => {
                 c3: att.telatCount,      // jumlah telat (cost)
             };
         });
-        console.log("scheduleMap:", scheduleMap);
-        console.log("attendanceMap:", attendanceMap);
-        console.log("criteriaData:", criteriaData);
+        // console.log("scheduleMap:", scheduleMap);
+        // console.log("attendanceMap:", attendanceMap);
+        // console.log("criteriaData:", criteriaData);
 
         // 8. Normalisasi SAW
         const maxC1 = Math.max(...criteriaData.map((d) => d.c1));
