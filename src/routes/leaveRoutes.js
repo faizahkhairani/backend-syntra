@@ -12,8 +12,10 @@ const {
   getLeaveRecommendations
 } = require("../controllers/leaveController");
 const { protect, authorize } = require("../middleware/auth");
+const demoGuard = require("../middleware/demoGuard");
 
 router.use(protect);
+router.use(demoGuard);
 
 // employee
 router.get("/my-quota", getMyQuota);

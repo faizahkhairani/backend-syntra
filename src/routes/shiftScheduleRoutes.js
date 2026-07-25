@@ -8,8 +8,10 @@ const {
   deleteSchedule
 } = require("../controllers/shiftScheduleController");
 const { protect, authorize } = require("../middleware/auth");
+const demoGuard = require("../middleware/demoGuard");
 
 router.use(protect);
+router.use(demoGuard);
 
 router.get("/my-schedule", getMySchedule);       // employee
 router.get("/today", getTodaySchedule);           // employee (untuk check-in)

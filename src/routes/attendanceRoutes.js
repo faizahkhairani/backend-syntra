@@ -7,8 +7,10 @@ const {
   getAllAttendance,
 } = require("../controllers/attendanceController");
 const { protect, authorize } = require("../middleware/auth");
+const demoGuard = require("../middleware/demoGuard");
 
 router.use(protect);
+router.use(demoGuard);
 
 router.post("/checkin", checkIn);
 router.post("/checkout", checkOut);

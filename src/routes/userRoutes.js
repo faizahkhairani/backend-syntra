@@ -9,8 +9,10 @@ const {
   resetPassword
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middleware/auth");
+const demoGuard = require("../middleware/demoGuard");
 
 router.use(protect);
+router.use(demoGuard);
 
 // admin only
 router.route("/")

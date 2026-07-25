@@ -8,8 +8,10 @@ const {
   deleteShift
 } = require("../controllers/shiftController");
 const { protect, authorize } = require("../middleware/auth");
+const demoGuard = require("../middleware/demoGuard");
 
 router.use(protect);
+router.use(demoGuard);
 
 router.route("/")
   .get(getAllShifts)

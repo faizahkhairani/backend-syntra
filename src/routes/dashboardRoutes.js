@@ -7,8 +7,10 @@ const {
   getLeaveSummary
 } = require("../controllers/dashboardController");
 const { protect, authorize } = require("../middleware/auth");
+const demoGuard = require("../middleware/demoGuard");
 
 router.use(protect);
+router.use(demoGuard);
 router.use(authorize("admin"));
 
 router.get("/summary", getSummary);

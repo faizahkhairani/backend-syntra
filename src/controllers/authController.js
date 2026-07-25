@@ -115,37 +115,12 @@ export const login = async (req, res, next) => {
         message: "Invalid email or password",
       });
     }
-
-    // if (!user.password) {
-    //   return res.status(500).json({
-    //     message: "invalid credential",
-    //   });
-    // }
-
-    // console.log("EMAIL INPUT:", email);
-    // console.log("PASSWORD INPUT:", password);
-    // console.log("USER DARI DB:", user);
-    // console.log("PASSWORD DI DB:", user.password);
-
-    // const test = await bcrypt.compare("admin123", user.password);
-    // console.log("TEST ADMIN123:", test);
      const isPasswordValid = await bcrypt.compare(password, user.password); // bandingin password dari client sama password di db
-    //  console.log("HASIL COMPARE:", isPasswordValid);
     if(!isPasswordValid){
         const error = new Error("Invalid email or password");
         error.statusCode = 401;
         return next(error);
     }
-
-
-
-    // const isMatch = await user.matchPassword(password);
-
-    // if (!isMatch) {
-    //   return res.status(400).json({
-    //     message: "Password salah",
-    //   });
-    // }
 
    res.status(200).json({
       success: true,
@@ -156,7 +131,8 @@ export const login = async (req, res, next) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        phone: user.phone
+        phone: user.phone,
+        isDemo: user.isDemo,
       },
     });
 
