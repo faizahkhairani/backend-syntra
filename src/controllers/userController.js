@@ -16,7 +16,7 @@ import { calcRemainingQuota } from "../utils/leaveHelper.js"
 export const getAllUsers = async (req, res, next) => {
     try {
         const { department, search } = req.query
-        const filter = { role: "employee" }; // admin tidak ikut di list
+        const filter = { role: "employee", isDemo: false }; // admin tidak ikut di list
 
         // nampung query dari depan kalo kosong berati gaada filter
         if (search) {
