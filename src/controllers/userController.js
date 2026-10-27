@@ -150,12 +150,22 @@ export const createUser = async (req, res, next) => {
 // ─────────────────────────────────────────
 
 export const updateUser = async (req, res, next) => {
-    try {
-        const { name, email, department, phone, gender } = req.body;
+  try {
+    const { name, email, department, phone, gender, role } = req.body;
+    // console.log(req.body)
 
         const user = await User.findById(req.params.id);
         if (!user) {
             return next(new ErrorResponse("User not found", 404));
+        }
+
+        if (role && !["employee", "admin"].includes(role)) {
+          return next(new ErrorResponse("Role tidak valid", 400))
+        }
+
+        // cegah admin menurunkan role akunnya sendiri
+        if (req.params.id === req.user._id.toString() && role && role !== "admin") {
+          return next(new ErrorResponse("Tidak bisa mengubah role akun sendiri", 400))
         }
 
         // cek duplikat email kalau email diubah
@@ -180,6 +190,7 @@ export const updateUser = async (req, res, next) => {
                 ...(department && { department }),
                 ...(phone && { phone }),
                 ...(gender && { gender }),
+                ...(role && { role }),
             },
             { returnDocument: "after", runValidators: true }
         );
@@ -249,7 +260,8 @@ export const resetPassword = async (req, res, next) => {
       return next(new ErrorResponse("User not found", 404));
     }
 
-    await user.save({ validateBeforeSave: false });
+    user.password = newPassword; 
+    await user.save();
 
     res.status(200).json({
       success: true,
@@ -265,38 +277,38 @@ export const resetPassword = async (req, res, next) => {
 // @route   PATCH /api/users/change-password
 // @access  Private / Employee & Admin
 // ─────────────────────────────────────────
-export const changePassword = async (req, res, next) => {
-  try {
-    const { oldPassword, newPassword } = req.body;
+// export const changePassword = async (req, res, next) => {
+//   try {
+//     const { oldPassword, newPassword } = req.body;
 
-    if (!oldPassword || !newPassword) {
-      return next(
-        new ErrorResponse("oldPassword and newPassword are required", 400)
-      );
-    }
+//     if (!oldPassword || !newPassword) {
+//       return next(
+//         new ErrorResponse("oldPassword and newPassword are required", 400)
+//       );
+//     }
 
-    if (newPassword.length < 6) {
-      return next(
-        new ErrorResponse("Password must be at least 6 characters", 400)
-      );
-    }
+//     if (newPassword.length < 6) {
+//       return next(
+//         new ErrorResponse("Password must be at least 6 characters", 400)
+//       );
+//     }
 
-    const user = await User.findById(req.user._id).select("+password");
+//     const user = await User.findById(req.user._id).select("+password");
 
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) {
-      return next(new ErrorResponse("Old password is incorrect", 401));
-    }
+//     const isMatch = await bcrypt.compare(oldPassword, user.password);
+//     if (!isMatch) {
+//       return next(new ErrorResponse("Old password is incorrect", 401));
+//     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save({ validateBeforeSave: false });
+//     const salt = await bcrypt.genSalt(10);
+//     user.password = await bcrypt.hash(newPassword, salt);
+//     await user.save({ validateBeforeSave: false });
 
-    res.status(200).json({
-      success: true,
-      message: "Password changed successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: "Password changed successfully",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
