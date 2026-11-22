@@ -2,6 +2,9 @@ import Shift from "../models/Shift.js"
 import ErrorResponse from "../utils/errorResponse.js"
 import ShiftSchedules from "../models/ShiftSchedule.js"
 
+// nama shift bisa berisi karakter regex, misal "Shift (Pagi)"
+const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
 
 export const getAllShifts = async (req, res, next) => {
     try {
@@ -57,7 +60,7 @@ export const createShift = async (req, res, next) => {
 
         // cek duplikat nama shift
         const existing = await Shift.findOne({
-            name: { $regex: new RegExp(`^${name}$`, "i") },
+            name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
         });
             if (existing) {
             return next(new ErrorResponse(`Shift '${name}' already exists`, 409));
@@ -114,7 +117,7 @@ export const updateShift = async (req, res, next) => {
         // cek duplikat nama (exclude diri sendiri)
         if (name) {
             const duplicate = await Shift.findOne({
-            name: { $regex: new RegExp(`^${name}$`, "i") },
+            name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
             _id: { $ne: req.params.id },
         });
         if (duplicate) {
@@ -126,6 +129,12 @@ export const updateShift = async (req, res, next) => {
         // newEnd   = undefined || "16:00" → "16:00" ✔
         const newStart = start_time || shift.start_time;
         const newEnd = end_time || shift.end_time;
+
+        if (newStart === newEnd) {
+            return next(
+                new ErrorResponse("Start time and end time cannot be the same", 400)
+            )
+        }
 
         const isOvernight = newEnd < newStart
 

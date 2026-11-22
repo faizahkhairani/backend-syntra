@@ -7,11 +7,12 @@ const timeToMinutes = (time) => {
 // contoh -> 08:00 = 480 menit
 
 // hitung durasi kerja dalam menit (handle overnight)
-const calcWorkDuration = (checkInTime, checkOutTime, overnight) => {
+const calcWorkDuration = (checkInTime, checkOutTime) => {
   const inMinutes = timeToMinutes(checkInTime);
   const outMinutes = timeToMinutes(checkOutTime);
 
-  if (overnight && outMinutes < inMinutes) {
+  // jam keluar lebih kecil = check-out setelah tengah malam
+  if (outMinutes < inMinutes) {
     // misal masuk 21:00 (1260 menit), keluar 08:00 (480 menit)
     return 1440 - inMinutes + outMinutes; // 1440 = total menit sehari
     // = (1440 - 1260) + 480
@@ -39,7 +40,7 @@ const isShiftEnded = (currentTime, endTime, overnight) => {
 const determineStatus = (checkInTime, shiftStartTime, lateTolerance) => {
   const checkInMinutes = timeToMinutes(checkInTime);
   const shiftStartMinutes = timeToMinutes(shiftStartTime);
-  const toleranceMinutes = lateTolerance || 30;
+  const toleranceMinutes = lateTolerance ?? 15; // 0 = tanpa toleransi
 
   // check in jam 08.10 <  08.00 + 30
   return checkInMinutes <= shiftStartMinutes + toleranceMinutes
@@ -54,24 +55,17 @@ const formatDuration = (minutes) => {
   return `${h}h ${m}m`;
 };
 
-// get current time "HH:mm"
-// const getCurrentTime = () => {
-//   return new Date().toLocaleTimeString("id-ID", {
-//     hour: "2-digit",
-//     minute: "2-digit",
-//     hour12: false,
-//     timeZone: "Asia/Jakarta",
-//   });
-// };
-
+// get current time "HH:mm" — selalu WIB, tidak tergantung timezone server
+// en-GB supaya pemisahnya ":" (id-ID menghasilkan "08.05" dan merusak timeToMinutes)
 const getCurrentTime = () => {
-  const now = new Date();
-
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-
-  return `${hours}:${minutes}`; // contoh: "08:05"
+  return new Date().toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: "Asia/Jakarta",
+  }); // contoh: "08:05"
 };
+
 // get current date "YYYY-MM-DD"
 const getCurrentDate = () => {
   return new Date()
@@ -86,6 +80,16 @@ const getCurrentDate = () => {
     .join("-");
 };
 
+// tahun berjalan (WIB)
+const getCurrentYear = () => Number(getCurrentDate().slice(0, 4));
+
+// geser tanggal "YYYY-MM-DD" sekian hari
+const addDays = (date, days) => {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
 module.exports = {
   timeToMinutes,
   calcWorkDuration,
@@ -93,4 +97,6 @@ module.exports = {
   formatDuration,
   getCurrentTime,
   getCurrentDate,
+  getCurrentYear,
+  addDays,
 };

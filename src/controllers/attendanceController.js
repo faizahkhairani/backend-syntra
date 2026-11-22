@@ -167,15 +167,10 @@ export const checkOut = async (req, res, next) => {
 
         const currentTime = getCurrentTime();
         console.log(currentTime)
-        // ambil data shift yg mau di check out
-        const shift = attendance.shiftScheduleId.shiftId;
-        console.log(shift)
-
         // hitung waktu kerja dari check in
         const workDuration = calcWorkDuration(
             attendance.checkIn.time,
-            currentTime,
-            shift.overnight
+            currentTime
         )
         console.log(workDuration)
 

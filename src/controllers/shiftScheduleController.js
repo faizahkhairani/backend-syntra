@@ -3,7 +3,7 @@ import Attendance from "../models/Attendance.js";
 import Shift from "../models/Shift.js"
 import ErrorResponse from "../utils/errorResponse.js";
 import User from "../models/User.js"
-import { getCurrentDate } from "../utils/timeHelper.js";
+import { getCurrentDate, addDays } from "../utils/timeHelper.js";
 
 // ─────────────────────────────────────────
 // @desc    Assign shift ke karyawan
@@ -195,10 +195,28 @@ export const getTodaySchedule = async (req, res, next) => {
         const today = getCurrentDate();
 
         // query 1 — ambil semua jadwal user di hari ini
-        const schedules = await ShiftSchedule.find({
+        const todaySchedules = await ShiftSchedule.find({
             userId: req.user._id,
             date: today,
         }).populate("shiftId", "name start_time end_time overnight late_tolerance");
+
+        // shift malam kemarin yang belum check-out, supaya bisa check-out pagi ini
+        const yesterdaySchedules = await ShiftSchedule.find({
+            userId: req.user._id,
+            date: addDays(today, -1),
+        }).populate("shiftId", "name start_time end_time overnight late_tolerance");
+        const openAttendances = await Attendance.find({
+            userId: req.user._id,
+            shiftScheduleId: { $in: yesterdaySchedules.map((s) => s._id) },
+            "checkIn.time": { $ne: null },
+            "checkOut.time": null,
+        });
+        const openIds = new Set(openAttendances.map((a) => a.shiftScheduleId.toString()));
+        const carriedOver = yesterdaySchedules.filter(
+            (s) => s.shiftId?.overnight && openIds.has(s._id.toString())
+        );
+
+        const schedules = [...carriedOver, ...todaySchedules];
 
         if (schedules.length === 0) {
             return res.status(200).json({

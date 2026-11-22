@@ -5,6 +5,7 @@ import Attendance from "../models/Attendance.js"
 import ShiftSchedule from "../models/ShiftSchedule.js"
 import ErrorResponse from "../utils/errorResponse.js"
 import { calcRemainingQuota } from "../utils/leaveHelper.js"
+import { getCurrentYear } from "../utils/timeHelper.js"
 
 
 // ─────────────────────────────────────────
@@ -20,9 +21,10 @@ export const getAllUsers = async (req, res, next) => {
 
         // nampung query dari depan kalo kosong berati gaada filter
         if (search) {
+            const keyword = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") // escape karakter regex
             filter.$or = [
-                { name: { $regex: search, $options: "i" } },
-                { email: { $regex: search, $options: "i" } },
+                { name: { $regex: keyword, $options: "i" } },
+                { email: { $regex: keyword, $options: "i" } },
             ];
         }
 
@@ -57,7 +59,7 @@ export const getUserById = async (req, res, next) => {
           return next(new ErrorResponse("User not found", 404))
       }
 
-      const year = new Date().getFullYear()
+      const year = getCurrentYear()
       const quota = await LeaveQuota.findOne({userId: user._id, year})
 
       const leaveInfo = quota
@@ -118,7 +120,7 @@ export const createUser = async (req, res, next) => {
     });
 
     // auto-buat leave quota untuk tahun ini
-    const year = new Date().getFullYear();
+    const year = getCurrentYear();
     await LeaveQuota.create({
       userId: user._id,
       year,

@@ -2,6 +2,7 @@ import LeaveRequest from "../models/LeaveRequest.js";
 import LeaveQuota from "../models/LeaveQuota.js";
 import ErrorResponse from "../utils/errorResponse.js";
 import { calcLeaveDuration, LEAVE_RULES, calcRemainingQuota } from "../utils/leaveHelper.js";
+import { getCurrentDate, getCurrentYear } from "../utils/timeHelper.js";
 import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import ShiftSchedule from "../models/ShiftSchedule.js";
@@ -13,7 +14,7 @@ import ShiftSchedule from "../models/ShiftSchedule.js";
 // ─────────────────────────────────────────
 export const getMyQuota = async (req, res, next) => {
     try {
-        const year = new Date().getFullYear()
+        const year = getCurrentYear()
 
         let quota = await LeaveQuota.findOne({
             userId: req.user._id,
@@ -107,9 +108,7 @@ export const createLeaveRequest = async (req, res, next) => {
         }
 
         // validasi startDate tidak di masa lalu
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (new Date(startDate) < today) {
+        if (startDate < getCurrentDate()) {
             return next(new ErrorResponse("Cannot apply leave for past dates", 400));
         }
 
@@ -302,6 +301,26 @@ export const reviewLeaveRequest = async (req, res, next) => {
         );
         }
 
+        // cek ulang kuota — bisa saja beberapa pengajuan pending totalnya melebihi sisa kuota
+        if (status === "approved" && LEAVE_RULES[leaveRequest.type]?.deductsQuota) {
+            const year = Number(leaveRequest.startDate.slice(0, 4));
+            const quota = await LeaveQuota.findOne({ userId: leaveRequest.userId, year });
+            const { remaining } = await calcRemainingQuota(
+                leaveRequest.userId,
+                year,
+                quota?.total_quota ?? 14,
+                LeaveRequest
+            );
+            if (leaveRequest.duration > remaining) {
+                return next(
+                    new ErrorResponse(
+                        `Insufficient leave quota. Requested: ${leaveRequest.duration} days, remaining: ${remaining} days`,
+                        400
+                    )
+                );
+            }
+        }
+
         leaveRequest.status = status;
         leaveRequest.reviewedBy = req.user._id;
         leaveRequest.reviewedAt = new Date()
@@ -372,7 +391,7 @@ export const cancelLeaveRequest = async (req, res, next) => {
 export const getAllQuotas = async (req, res, next) => {
     try {
         // kalo ada req year ?year=2025 pake itu kalo ga ambil tahun sekarang
-        const year = req.query.year || new Date().getFullYear();
+        const year = req.query.year || getCurrentYear();
         console.log(year)
         // ambil data kuota semua user dari tahun lalu populate untuk dapetin informasi lengkap setiap user
         const quotas = await LeaveQuota.find({year}).populate
@@ -443,18 +462,18 @@ export const getLeaveRecommendations = async (req, res, next) => {
         }
 
         // 2. Ambil range 3 bulan terakhir
-        const now = new Date();
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(now.getMonth() - 3);
-        const startDate = threeMonthsAgo.toISOString().split("T")[0]; // "YYYY-MM-DD"
-        const endDate = now.toISOString().split("T")[0];
+        const year = getCurrentYear();
+        const endDate = getCurrentDate(); // "YYYY-MM-DD" (WIB)
+        const threeMonthsAgo = new Date(`${endDate}T00:00:00Z`);
+        threeMonthsAgo.setUTCMonth(threeMonthsAgo.getUTCMonth() - 3);
+        const startDate = threeMonthsAgo.toISOString().split("T")[0];
 
         // 3. Ambil semua userId yang punya pending leave
         const userIds = [...new Set(pendingLeaves.map((l) => l.userId._id.toString()))];
 
         // 4. Fetch semua data sekaligus (hindari N+1)
         const [quotas, attendances, shiftSchedules] = await Promise.all([
-            LeaveQuota.find({ userId: { $in: userIds }, year: now.getFullYear() }),
+            LeaveQuota.find({ userId: { $in: userIds }, year }),
             Attendance.find({
                 userId: { $in: userIds },
                 date: { $gte: startDate, $lte: endDate },
@@ -467,16 +486,21 @@ export const getLeaveRecommendations = async (req, res, next) => {
         // console.log(quotas)
 
         // 5. Hitung remaining quota tiap user pakai calcRemainingQuota
+        // user yang belum punya dokumen kuota tahun ini dihitung pakai jatah default (14)
+        const totalQuotaMap = {};
+        quotas.forEach((q) => {
+            totalQuotaMap[q.userId.toString()] = q.total_quota;
+        });
         const quotaMap = {};
         await Promise.all(
-            quotas.map(async (q) => {
+            userIds.map(async (uid) => {
                 const { remaining } = await calcRemainingQuota(
-                    q.userId,
-                    now.getFullYear(),
-                    q.total_quota,
+                    new mongoose.Types.ObjectId(uid), // aggregate tidak auto-cast string
+                    year,
+                    totalQuotaMap[uid] ?? 14,
                     LeaveRequest
                 );
-                quotaMap[q.userId.toString()] = remaining;
+                quotaMap[uid] = remaining;
             })
         );
 

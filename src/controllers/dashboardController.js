@@ -22,7 +22,8 @@ export const getSummary = async (req, res, next) => {
             pendingLeaves,
             attendanceSummary,
         ] = await Promise.all([
-            User.countDocuments(),
+            // sama seperti list karyawan — admin & akun demo tidak dihitung
+            User.countDocuments({ role: "employee", isDemo: false }),
             LeaveRequest.countDocuments({ status: "pending" }),
 
             ShiftSchedule.aggregate([
@@ -75,6 +76,12 @@ export const getSummary = async (req, res, next) => {
                         notAbsen: {
                             $sum: { $cond: [{ $eq: ["$computedStatus", null] }, 1, 0] }
                         },
+                        checkIns: {
+                            $sum: { $cond: [{ $ifNull: ["$attendanceData.checkIn.time", false] }, 1, 0] }
+                        },
+                        checkOuts: {
+                            $sum: { $cond: [{ $ifNull: ["$attendanceData.checkOut.time", false] }, 1, 0] }
+                        },
                     },
                 },
                 {
@@ -84,6 +91,8 @@ export const getSummary = async (req, res, next) => {
                     present: 1,
                     late: 1,
                     notAbsen: 1,
+                    checkIns: 1,
+                    checkOuts: 1,
                     },
                 },
             ])
@@ -95,6 +104,8 @@ export const getSummary = async (req, res, next) => {
             present: 0,
             late: 0,
             notAbsen: 0,
+            checkIns: 0,
+            checkOuts: 0,
         };
 
         res.status(200).json({
@@ -109,6 +120,8 @@ export const getSummary = async (req, res, next) => {
                     present: summary.present,
                     late: summary.late,
                     notAbsen: summary.notAbsen,
+                    checkIns: summary.checkIns,
+                    checkOuts: summary.checkOuts,
                 },
                 leaves: {
                     pending: pendingLeaves,
@@ -227,52 +240,71 @@ export const getDailyRecap = async (req, res, next) => {
 
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 
+// ─────────────────────────────────────────
+// @desc    Rekap kehadiran minggu ini, Senin-Minggu (admin)
+// @route   GET /api/dashboard/attendance-weekly
+// @access  Private / Admin
+// ─────────────────────────────────────────
+
 export const getWeeklyAttendance = async (req, res) => {
   try {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1); // mulai Senin
-    startOfWeek.setHours(0, 0, 0, 0);
+    const today = getCurrentDate(); // "YYYY-MM-DD" (WIB)
 
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    const results = await Attendance.aggregate([
-      {
-        $match: {
-          date: { $gte: startOfWeek, $lte: endOfWeek },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            dayOfWeek: { $dayOfWeek: "$date" }, // 1=Minggu ... 7=Sabtu
-            status: "$status",
-          },
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    // pakai UTC biar hasilnya tidak tergantung timezone server
+    const monday = new Date(`${today}T00:00:00Z`);
+    const daysSinceMonday = (monday.getUTCDay() + 6) % 7; // Senin = 0 ... Minggu = 6
+    monday.setUTCDate(monday.getUTCDate() - daysSinceMonday);
 
     // inisialisasi 7 hari (Senin-Minggu) dengan default 0
     const weekMap = {};
-    for (let i = 1; i <= 7; i++) {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + (i - 1));
-      const label = DAY_LABELS[d.getDay()];
-      weekMap[label] = { day: label, hadir: 0, terlambat: 0, absen: 0 };
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setUTCDate(monday.getUTCDate() + i);
+      const date = d.toISOString().slice(0, 10);
+      weekMap[date] = { day: DAY_LABELS[d.getUTCDay()], date, hadir: 0, terlambat: 0, absen: 0 };
     }
+    const weekDates = Object.keys(weekMap);
+    const startDate = weekDates[0];
+    const endDate = weekDates[6];
 
-    // isi dari hasil aggregate
-    results.forEach((r) => {
-      const jsDay = r._id.dayOfWeek - 1; // convert Mongo (1-7, Min-Sab) ke JS getDay (0-6)
-      const label = DAY_LABELS[jsDay];
-      if (!weekMap[label]) return;
+    // hitung dari jadwal, karena dokumen attendance baru dibuat saat check-in
+    const [schedules, leaves] = await Promise.all([
+      ShiftSchedule.find({ date: { $gte: startDate, $lte: endDate } }).lean(),
+      LeaveRequest.find({
+        status: "approved",
+        startDate: { $lte: endDate },
+        endDate: { $gte: startDate },
+      }).lean(),
+    ]);
 
-      if (r._id.status === "present") weekMap[label].hadir += r.count;
-      else if (r._id.status === "late") weekMap[label].terlambat += r.count;
-      else if (r._id.status === "absent") weekMap[label].absen += r.count;
+    const attendances = await Attendance.find({
+      shiftScheduleId: { $in: schedules.map((s) => s._id) },
+    }).lean();
+
+    const attendanceMap = {};
+    attendances.forEach((att) => {
+      attendanceMap[att.shiftScheduleId.toString()] = att;
+    });
+
+    const isOnLeave = (userId, date) =>
+      leaves.some(
+        (l) =>
+          l.userId.toString() === userId.toString() &&
+          l.startDate <= date &&
+          l.endDate >= date
+      );
+
+    schedules.forEach((schedule) => {
+      const recap = weekMap[schedule.date];
+      const attendance = attendanceMap[schedule._id.toString()];
+
+      if (attendance?.checkIn?.time) {
+        if (attendance.status === "present") recap.hadir += 1;
+        else if (attendance.status === "late") recap.terlambat += 1;
+      } else if (schedule.date < today && !isOnLeave(schedule.userId, schedule.date)) {
+        // hari ini & ke depan belum dihitung absen, karena masih bisa check-in
+        recap.absen += 1;
+      }
     });
 
     res.json(Object.values(weekMap));
