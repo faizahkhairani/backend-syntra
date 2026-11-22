@@ -9,7 +9,6 @@ Pastikan sudah terinstall:
 
 ### 1. Clone repository
 
-git clone https://github.com/username/syntra-api.git
 cd syntra-api
 
 ### 2. Install dependencies
